@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LAMI-TJ → TJ perjantaihin</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 24px; max-width: 720px; margin: 0 auto; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    input { padding: 10px 12px; font-size: 16px; flex: 1; min-width: 220px; }
+    button { padding: 10px 14px; font-size: 16px; cursor: pointer; }
+    .out { margin-top: 16px; font-size: 18px; }
+    .muted { color: #666; font-size: 14px; margin-top: 8px; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>LAMI-TJ</h1>
+
+  <div class="row">
+    <input id="q" placeholder='Kirjoita esim. "LAMI-TJ" ja paina Enter…' autocomplete="off" />
+    <button id="ask">Kysy</button>
+  </div>
+
+  <div class="out" id="out"></div>
+  <div class="muted" id="meta"></div>
+
+  <script>
+    // Palauttaa "tämän viikon perjantain" (maanantai–sunnuntai viikolla) klo 00:00 paikallista aikaa.
+    function thisWeeksFriday(date = new Date()) {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+
+      // JS: 0=su,1=ma,...,5=pe,6=la
+      const day = d.getDay();
+      // Siirry maanantaihin
+      const mondayOffset = (day + 6) % 7; // ma=0, ti=1,... su=6
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - mondayOffset);
+
+      const friday = new Date(monday);
+      friday.setDate(monday.getDate() + 4); // ma +4 = pe
+      return friday;
+    }
+
+    function daysUntilFriday(date = new Date()) {
+      const today = new Date(date);
+      today.setHours(0, 0, 0, 0);
+
+      const fri = thisWeeksFriday(today);
+      const msPerDay = 24 * 60 * 60 * 1000;
+      return Math.round((fri - today) / msPerDay); // voi olla negatiivinen la/su
+    }
+
+    function answerTJ() {
+      const input = document.getElementById("q").value.trim();
+      const out = document.getElementById("out");
+      const meta = document.getElementById("meta");
+
+      const diff = daysUntilFriday(new Date());
+      const fri = thisWeeksFriday(new Date());
+
+      // Muotoile perjantain päivämäärä kivasti (fi-FI)
+      const friStr = new Intl.DateTimeFormat("fi-FI", { weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(fri);
+
+      if (!input) {
+        out.textContent = "Kysy jotain (esim. LAMI-TJ).";
+        meta.textContent = "";
+        return;
+      }
+
+      if (diff >= 0) {
+        out.textContent = `TJ ${diff} (tämän viikon perjantaihin)`;
+        meta.textContent = `Perjantai on: ${friStr}`;
+      } else {
+        // Jos on jo la/su, “tämän viikon perjantai” meni.
+        out.textContent = `Tämän viikon perjantai oli jo (TJ ${diff}).`;
+        meta.textContent = `Perjantai oli: ${friStr}`;
+      }
+
+      // Valmis seuraavaan kysymykseen
+      document.getElementById("q").select();
+    }
+
+    document.getElementById("ask").addEventListener("click", answerTJ);
+    document.getElementById("q").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") answerTJ();
+    });
+
+    // Fokus heti inputtiin
+    document.getElementById("q").focus();
+  </script>
+</body>
+</html>
